@@ -15,8 +15,8 @@ async fn main() -> std::io::Result<()> {
 
     actix_rt::spawn(async move {
 
-        let sftp_poll_cron_expr = std::env::var("SFTP_POLL_CRON_EXPR").expect("SFTP_POLL_CRON_EXPR must be set.");
-        let partners_list = std::env::var("PARTNERS_LIST").expect("PARTNERS_LIST must be set.");
+        let sftp_poll_cron_expr = std::env::var("SFTP_CLIENT_POLL_CRON_EXPR").expect("SFTP_CLIENT_POLL_CRON_EXPR must be set.");
+        let partners_list = std::env::var("SFTP_CLIENT_PARTNERS_LIST").expect("SFTP_CLIENT_PARTNERS_LIST must be set.");
 
         let p =Regex::new(r"[,\s]");
         let q = p.unwrap();
