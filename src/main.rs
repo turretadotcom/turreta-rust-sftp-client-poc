@@ -8,15 +8,27 @@ use std::str::FromStr;
 use cron::Schedule;
 use dotenv::dotenv;
 use regex::Regex;
+pub mod common;
 use std::thread;
+use crate::common::domain::AppContext;
+use crate::common::util::EnvAttributes;
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
+    let envs = EnvAttributes::new();
+
+    let envs2 = envs.clone();
     actix_rt::spawn(async move {
+
+        println!("{:?}", envs2.sftp_client_poll_cron_exp);
 
         let sftp_poll_cron_expr = std::env::var("SFTP_CLIENT_POLL_CRON_EXPR").expect("SFTP_CLIENT_POLL_CRON_EXPR must be set.");
         let partners_list = std::env::var("SFTP_CLIENT_PARTNERS_LIST").expect("SFTP_CLIENT_PARTNERS_LIST must be set.");
+
+
+        let o = AppContext::new();
 
         let p =Regex::new(r"[,\s]");
         let q = p.unwrap();
@@ -89,6 +101,9 @@ async fn main() -> std::io::Result<()> {
             println!("Disconnected from SFTP");
         }
     });
+
+    println!("{:?}", envs.sftp_client_poll_cron_exp);
+
     HttpServer::new(|| {
         App::new()
             .route("/hello", web::get().to(|| async { "Hello World!" }))
