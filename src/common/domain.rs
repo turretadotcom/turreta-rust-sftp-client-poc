@@ -1,35 +1,48 @@
 use serde_derive::{Deserialize, Serialize};
+use crate::common::util::EnvAttributes;
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Struct that represents the application's context
+///
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppContext {
     pub sftp_cron_expression: String,
+    pub sftp_client_partners_list: String,
+    pub app_server_host: String,
+    pub app_server_port: String,
     pub sftp_context: SftpContext
 }
 
 impl AppContext {
     pub fn new() -> AppContext {
 
-        let sftp_poll_cron_expr = std::env::var("SFTP_CLIENT_POLL_CRON_EXPR").expect("SFTP_CLIENT_POLL_CRON_EXPR must be set.");
-        
+        let envs = EnvAttributes::new();
+
         AppContext {
-            sftp_cron_expression: sftp_poll_cron_expr,
+            sftp_cron_expression: envs.sftp_client_poll_cron_exp,
+            sftp_client_partners_list: envs.sftp_client_partners_list,
+            app_server_host: envs.app_server_host,
+            app_server_port: envs.app_server_port,
+
             sftp_context: SftpContext {
-                username: "".to_string(),
-                password: "".to_string(),
-                endpoint: "".to_string(),
-                remote_base_dir: "".to_string(),
+                username: envs.sftp_server_username,
+                password: envs.sftp_server_password,
+                endpoint: envs.sftp_server_endpoint_url,
+                remote_base_dir: envs.sftp_server_basedir,
                 partner_dir_structure: SftpPartnerDirStructure {
-                    in_dir: "".to_string(),
-                    in_dir_work: "".to_string(),
-                    in_dir_success: "".to_string(),
-                    out_dir: "".to_string(),
+                    in_dir: envs.sftp_server_in_dir,
+                    in_dir_work: envs.sftp_server_in_dir_work,
+                    in_dir_success: envs.sftp_server_in_dir_success,
+                    out_dir: envs.sftp_server_out_dir,
                 },
             },
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+
+/// Struct that represents an SFTP instance context container simple data
+///
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SftpContext {
     pub username: String,
     pub password: String,
@@ -38,7 +51,9 @@ pub struct SftpContext {
     pub partner_dir_structure: SftpPartnerDirStructure
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Struct that represents the directory structure all partners will have
+///
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SftpPartnerDirStructure {
     pub in_dir: String,
     pub in_dir_work: String,

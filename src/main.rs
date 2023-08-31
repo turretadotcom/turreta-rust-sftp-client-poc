@@ -17,25 +17,21 @@ use crate::common::util::EnvAttributes;
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
-    let envs = EnvAttributes::new();
+    let app_context = AppContext::new();
 
-    let envs2 = envs.clone();
+    let app_context_copy = app_context.clone();
     actix_rt::spawn(async move {
 
-        println!("{:?}", envs2.sftp_client_poll_cron_exp);
+        println!("{:?}", app_context_copy.sftp_cron_expression);
 
-        let sftp_poll_cron_expr = std::env::var("SFTP_CLIENT_POLL_CRON_EXPR").expect("SFTP_CLIENT_POLL_CRON_EXPR must be set.");
-        let partners_list = std::env::var("SFTP_CLIENT_PARTNERS_LIST").expect("SFTP_CLIENT_PARTNERS_LIST must be set.");
 
 
         let o = AppContext::new();
 
         let p =Regex::new(r"[,\s]");
         let q = p.unwrap();
-        let o = q.split(partners_list.as_str());
+        let o = q.split(app_context.sftp_client_partners_list.as_str());
         let y:Vec<_> = o.into_iter().collect();
-
-
 
         print!("{:?}", y);
         // Pred partners SFTP dirs
@@ -71,7 +67,7 @@ async fn main() -> std::io::Result<()> {
                 - file1
         */
 
-        let expression = sftp_poll_cron_expr.as_str();
+        let expression = app_context_copy.sftp_cron_expression.as_str();
         let schedule = Schedule::from_str(expression).unwrap();
         let offset = Some(FixedOffset::east_opt(0).unwrap()).unwrap();
 
@@ -102,13 +98,13 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
-    println!("{:?}", envs.sftp_client_poll_cron_exp);
+    println!("{:?}", app_context.sftp_cron_expression);
 
     HttpServer::new(|| {
         App::new()
             .route("/hello", web::get().to(|| async { "Hello World!" }))
     })
-        .bind(("127.0.0.1", 8080))?
+        .bind((app_context.app_server_host, app_context.app_server_port.parse::<u16>().unwrap()))?
         .run()
         .await
 }
