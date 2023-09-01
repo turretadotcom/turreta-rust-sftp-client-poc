@@ -9,6 +9,8 @@ use cron::Schedule;
 use dotenv::dotenv;
 use regex::Regex;
 pub mod common;
+mod domains;
+mod repository;
 use std::thread;
 use crate::common::domain::AppContext;
 
@@ -18,6 +20,9 @@ async fn main() -> std::io::Result<()> {
 
     let app_context = AppContext::new();
 
+    let alerts_db = repository::database::Database::new();
+
+
     let app_context_copy = app_context.clone();
     actix_rt::spawn(async move {
         println!("{:?}", app_context_copy.sftp_cron_expression);
@@ -26,6 +31,8 @@ async fn main() -> std::io::Result<()> {
         let sftp = o.sftp().unwrap();
         println!("Connected to SFTP");
 
+
+        // Prepare the partners' directories
         for partner in &app_context_copy.sftp_client_partners {
 
             let mut tmp = app_context_copy.sftp_context.remote_base_dir.clone();
@@ -69,64 +76,36 @@ async fn main() -> std::io::Result<()> {
         println!("Disconnected from SFTP");
 
 
-        /*
+        println!("Starting polling");
 
-        /base-dir/
-            - P1
-              - from_client
-                - in
-                - error
-                - wip
-                - done
-              - to_client
-                - file1
-            - P2
-              - from_client
-                - in
-                - error
-                - wip
-                - done
-              - to_client
-                - file1
-            - P3
-              - from_client
-                - in
-                - error
-                - wip
-                - done
-              - to_client
-                - file1
-        */
+        let expression = app_context_copy.sftp_cron_expression.as_str();
+        let schedule = Schedule::from_str(expression).unwrap();
+        let offset = Some(FixedOffset::east_opt(0).unwrap()).unwrap();
 
-        // let expression = app_context_copy.sftp_cron_expression.as_str();
-        // let schedule = Schedule::from_str(expression).unwrap();
-        // let offset = Some(FixedOffset::east_opt(0).unwrap()).unwrap();
-        //
-        // loop {
-        //
-        //     let o: Session = get_tcp_stream_session();
-        //     let sftp = o.sftp().unwrap();
-        //
-        //     println!("Connected to SFTP");
-        //
-        //     let mut upcoming = schedule.upcoming(offset).take(1);
-        //     actix_rt::time::sleep(Duration::from_millis(500)).await;
-        //     let local = &Local::now();
-        //
-        //     if let Some(datetime) = upcoming.next() {
-        //         if datetime.timestamp() <= local.timestamp() {
-        //
-        //             // let result = get_ips().await;
-        //             let result = "KARL";
-        //
-        //             // poll SFTP
-        //             println!("{:?}",result);
-        //         }
-        //     }
-        //
-        //     o.disconnect(Some(DisconnectCode::ByApplication), "Done", Option::None).expect("TODO: panic message");
-        //     println!("Disconnected from SFTP");
-        // }
+        loop {
+            let mut upcoming = schedule.upcoming(offset).take(1);
+            actix_rt::time::sleep(Duration::from_millis(500)).await;
+            let local = &Local::now();
+
+            if let Some(datetime) = upcoming.next() {
+                if datetime.timestamp() <= local.timestamp() {
+
+                    // let result = get_ips().await;
+                    let result = "KARL";
+
+                    // poll SFTP
+                    println!("{:?}",result);
+
+                    let sftp_poller: Session = get_tcp_stream_session();
+                    let sftp = sftp_poller.sftp().unwrap();
+
+                    println!("Connected to SFTP");
+
+                    sftp_poller.disconnect(Some(DisconnectCode::ByApplication), "Done", Option::None).expect("TODO: panic message");
+                    println!("Disconnected from SFTP");
+                }
+            }
+        }
     });
 
     println!("{:?}", app_context.sftp_cron_expression);

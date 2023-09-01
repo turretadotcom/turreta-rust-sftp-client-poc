@@ -85,3 +85,6 @@ pub struct SftpPartner {
     pub enabled: bool
 }
 
+pub trait DataTransformer {
+    fn transform(&self, in_data: String) -> String;
+}
