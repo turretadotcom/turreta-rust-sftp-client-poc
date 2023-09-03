@@ -1,6 +1,8 @@
+use std::net::TcpStream;
 use serde_derive::{Deserialize, Serialize};
 use crate::common::util::EnvAttributes;
 use regex::Regex;
+use ssh2::Session;
 
 /// Struct that represents the application's context
 ///
@@ -53,6 +55,21 @@ impl AppContext {
                 },
             },
         }
+    }
+
+    pub fn get_tcp_stream_session(&self) -> Session {
+
+        let sftp_endpoint_url = &self.sftp_context.endpoint;
+        let sftp_username = &self.sftp_context.username;
+        let sftp_user_password = &self.sftp_context.password;
+
+        let tcp = TcpStream::connect(sftp_endpoint_url.as_str()).unwrap();
+        let mut sess = Session::new().unwrap();
+        sess.set_tcp_stream(tcp);
+        sess.handshake().unwrap();
+        sess.userauth_password(sftp_username.as_str(), sftp_user_password.as_str()).unwrap();
+
+        sess
     }
 }
 

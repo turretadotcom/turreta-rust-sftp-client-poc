@@ -14,20 +14,34 @@ mod repository;
 use std::thread;
 use crate::common::domain::AppContext;
 
+
+fn call_dynamic(file_content: String) -> Result<bool, Box<dyn std::error::Error>> {
+
+    unsafe {
+        let lib = libloading::Library::new("/home/karl/Documents/__dev/turreta-opensource/turreta-rust-sftp-client-poc/dynamic-libraries/lib1/target/debug/liblib1.so")?;
+        let func: libloading::Symbol<unsafe extern fn(file: String) -> bool> = lib.get(b"process")?;
+
+        println!("bool {:?}", func("Content of a file".to_string()));
+
+        Ok(func(file_content))
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     let app_context = AppContext::new();
 
-    let alerts_db = repository::database::Database::new();
+    // let alerts_db = repository::database::Database::new();
 
+    call_dynamic("This is the content of a file".to_string()).expect("TODO: panic message");
 
     let app_context_copy = app_context.clone();
     actix_rt::spawn(async move {
         println!("{:?}", app_context_copy.sftp_cron_expression);
 
-        let o: Session = get_tcp_stream_session();
+        let o: Session = app_context_copy.get_tcp_stream_session();
         let sftp = o.sftp().unwrap();
         println!("Connected to SFTP");
 
@@ -96,7 +110,7 @@ async fn main() -> std::io::Result<()> {
                     // poll SFTP
                     println!("{:?}",result);
 
-                    let sftp_poller: Session = get_tcp_stream_session();
+                    let sftp_poller: Session = app_context_copy.get_tcp_stream_session();
                     let sftp = sftp_poller.sftp().unwrap();
 
                     println!("Connected to SFTP");
@@ -119,20 +133,7 @@ async fn main() -> std::io::Result<()> {
         .await
 }
 
-fn get_tcp_stream_session() -> Session {
 
-    let sftp_endpoint_url = std::env::var("SFTP_SERVER_ENDPOINT_URL").expect("SFTP_SERVER_ENDPOINT_URL must be set.");
-    let sftp_username = std::env::var("SFTP_SERVER_USERNAME").expect("SFTP_SERVER_USERNAME must be set.");
-    let sftp_user_password = std::env::var("SFTP_SERVER_USERPWD").expect("SFTP_SERVER_USERPWD must be set.");
-
-    let tcp = TcpStream::connect(sftp_endpoint_url.as_str()).unwrap();
-    let mut sess = Session::new().unwrap();
-    sess.set_tcp_stream(tcp);
-    sess.handshake().unwrap();
-    sess.userauth_password(sftp_username.as_str(), sftp_user_password.as_str()).unwrap();
-
-    sess
-}
 
 
 fn prepare_dir_structure_when_required() -> Session {
